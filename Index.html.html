@@ -3,9 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Gold-saucer</title>
+<title>Queen’s Blood - FFVII Rebirth Edition</title>
 <script src="https://cdn.tailwindcss.com"></script>
-
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Montserrat:wght@400;600;700&display=swap');
 
@@ -84,7 +83,6 @@ body {
 .rarity-epic { border-color: #a855f7; }
 .rarity-legendary { border-color: #eab308; box-shadow: 0 0 8px rgba(234, 179, 8, 0.4); }
 </style>
-
 </head>
 <body class="min-h-screen flex flex-col justify-between overflow-x-hidden text-sm">
 
@@ -678,12 +676,19 @@ function renderBoard() {
       // Tile Interaction Events
       tileDiv.onclick = () => handleTileClick(r, c);
       tileDiv.onmouseenter = () => {
+        // Empêche de ré-exécuter si c'est la même case survolée
+        if (hoveredTile && hoveredTile[0] === r && hoveredTile[1] === c) return;
         hoveredTile = [r, c];
-        if(tile.card) renderInspector(tile.card);
+        if (tile.card) {
+          renderInspector(tile.card);
+        } else if (selectedHandIndex !== null) {
+          renderInspector(Hand[0][selectedHandIndex]);
+        }
         renderBoard();
       };
       tileDiv.onmouseleave = () => {
         hoveredTile = null;
+        renderBoard();
       };
 
       grid.appendChild(tileDiv);
@@ -745,12 +750,23 @@ function renderHand() {
     cardDiv.onclick = () => {
       if(gameOver || turn !== 0) return;
       selectedHandIndex = (selectedHandIndex === idx) ? null : idx;
-      renderInspector(card);
+      renderInspector(selectedHandIndex !== null ? Hand[0][selectedHandIndex] : null);
       renderBoard();
       renderHand();
     };
 
-    cardDiv.onmouseenter = () => renderInspector(card);
+    cardDiv.onmouseenter = () => {
+      renderInspector(card);
+    };
+
+    cardDiv.onmouseleave = () => {
+      // Revenir à la carte sélectionnée en main ou vider l'inspecteur
+      if (selectedHandIndex !== null) {
+        renderInspector(Hand[0][selectedHandIndex]);
+      } else {
+        renderInspector(null);
+      }
+    };
 
     container.appendChild(cardDiv);
   });
@@ -759,6 +775,13 @@ function renderHand() {
 // Inspector Card Details View
 function renderInspector(card) {
   const container = document.getElementById('card-inspector-content');
+  
+  // Évite les re-rendus inutiles si c'est déjà la carte actuellement inspectée
+  if (window._currentInspectedCardId === (card ? card.id + '_' + card.name : null)) {
+    return;
+  }
+  window._currentInspectedCardId = card ? card.id + '_' + card.name : null;
+
   if(!card) {
     container.innerHTML = `
       <span class="text-3xl mb-2 opacity-40">🃏</span>
