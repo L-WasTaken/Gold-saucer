@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Welcome to the Gold Saucer</title>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Montserrat:wght@400;600;700&display=swap');
+
+:root {
+  --bg-dark: #0a0508;
+  --panel-bg: rgba(28, 14, 22, 0.85);
+  --gold: #f3c766;
+  --gold-dark: #967425;
+  --me-color: #3b82f6;
+  --foe-color: #ef4444;
+  --neutral-line: #4a2735;
+}
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  background-color: var(--bg-dark);
+  background-image: 
+    radial-gradient(circle at 50% 0%, #4a1525 0%, transparent 60%),
+    radial-gradient(circle at 10% 90%, #1f0b18 0%, transparent 40%);
+  color: #ebdcd4;
+  user-select: none;
+}
+
+.font-cinzel {
+  font-family: 'Cinzel', serif;
+}
+
+/* Animations CSS */
+@keyframes cardPlace {
+  0% { transform: scale(1.3) translateY(-10px); opacity: 0.5; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(243, 199, 102, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(243, 199, 102, 0.8); }
+}
+
+.animate-place {
+  animation: cardPlace 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.pulse-gold {
+  animation: pulseGlow 2s infinite;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 7, 11, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: #5a2838;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold);
+}
+
+/* Game Board Tile Hover Effects */
+.tile-preview-add {
+  box-shadow: inset 0 0 12px rgba(243, 199, 102, 0.7);
+  border-color: #f3c766 !important;
+}
+.tile-preview-take {
+  box-shadow: inset 0 0 12px rgba(59, 130, 246, 0.7);
+  border-color: #60a5fa !important;
+}
+
+/* Card Rarity Borders */
+.rarity-common { border-color: #6b7280; }
+.rarity-rare { border-color: #3b82f6; }
+.rarity-epic { border-color: #a855f7; }
+.rarity-legendary { border-color: #eab308; box-shadow: 0 0 8px rgba(234, 179, 8, 0.4); }
+</style>
+
+</head>
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden text-sm">
+
+  <!-- Header Navigation & Status -->
+  <header class="w-full bg-black/40 border-b border-rose-950/40 px-4 py-2 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-2">
+      <div class="flex items-center gap-3">
+        <h1 class="font-cinzel text-xl font-bold tracking-widest text-amber-400 flex items-center gap-2">
+          <span class="text-2xl">👑</span> QUEEN'S BLOOD
+        </h1>
+        <span class="text-xs px-2 py-0.5 rounded bg-rose-950/60 text-amber-200 border border-amber-900/40">FFVII Rebirth Edition</span>
+      </div>
+
+      <!-- Currency & Navigation Tabs -->
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-1.5 bg-amber-950/40 border border-amber-600/30 px-3 py-1 rounded-full">
+          <span class="text-amber-400 font-bold">🪙</span>
+          <span id="gold-tokens" class="font-bold text-amber-300">500</span>
+          <span class="text-xs text-amber-200/70 ml-1">Jetons GS</span>
+        </div>
+
+        <nav class="flex gap-1 bg-black/50 p-1 rounded-lg border border-white/5">
+          <button id="nav-game" onclick="switchTab('game')" class="px-3 py-1 rounded-md text-xs font-semibold transition-all bg-amber-500/20 text-amber-300 border border-amber-500/40">Jouer</button>
+          <button id="nav-deck" onclick="switchTab('deck')" class="px-3 py-1 rounded-md text-xs font-semibold transition-all hover:bg-white/5 text-stone-400">Deck (<span id="deck-count-badge">0</span>/20)</button>
+          <button id="nav-gacha" onclick="switchTab('gacha')" class="px-3 py-1 rounded-md text-xs font-semibold transition-all hover:bg-white/5 text-stone-400 flex items-center gap-1">
+            <span>✨</span> Gold Saucer Gacha
+          </button>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-6xl w-full mx-auto p-3 flex-1 flex flex-col justify-center">
+
+    <!-- ================= SECTION: JEU DE PLATEAU ================= -->
+    <section id="tab-game" class="flex flex-col gap-3">
+      
+      <!-- Top Control Bar (Difficulty & Game info) -->
+      <div class="flex flex-wrap justify-between items-center bg-stone-900/70 border border-stone-800 p-2.5 rounded-xl gap-2">
+        <div class="flex items-center gap-3">
+          <label class="text-xs font-semibold text-stone-400">Difficulté :</label>
+          <select id="diff-select" class="bg-stone-950 text-amber-300 border border-amber-900/50 rounded px-2.5 py-1 text-xs outline-none focus:border-amber-500">
+            <option value="easy">Facile (Gain: 100 🪙)</option>
+            <option value="medium" selected>Moyen (Gain: 250 🪙)</option>
+            <option value="hard">Difficile (Gain: 500 🪙)</option>
+          </select>
+        </div>
+
+        <div id="game-status-msg" class="text-center font-semibold text-amber-200/90 text-xs px-3 py-1 bg-amber-950/30 rounded-lg border border-amber-900/30">
+          Préparez-vous au duel.
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="btn-pass" onclick="handlePassTurn()" class="px-3 py-1 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold rounded border border-stone-600 transition disabled:opacity-40">Passer le tour</button>
+          <button id="btn-restart" onclick="startNewGame()" class="px-3 py-1 bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 text-xs font-semibold rounded border border-amber-500/40 transition">Nouvelle partie</button>
+        </div>
+      </div>
+
+      <!-- Main Game Board Display -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-3 items-start">
+        
+        <!-- Left/Center: Scoreboard + Board -->
+        <div class="lg:col-span-3 flex flex-col gap-3">
+          
+          <!-- Score Summary Header -->
+          <div class="flex justify-between items-center px-4 py-2 bg-stone-900/80 rounded-xl border border-stone-800">
+            <div class="flex items-center gap-3">
+              <span class="w-3 h-3 rounded-full bg-blue-500 inline-block shadow-[0_0_8px_#3b82f6]"></span>
+              <div>
+                <div class="text-xs text-stone-400 font-semibold">VOUS</div>
+                <div id="score-me" class="text-2xl font-bold font-cinzel text-blue-400">0</div>
+              </div>
+            </div>
+
+            <div class="text-xs font-cinzel text-stone-500 tracking-widest uppercase">Affrontement de rangées</div>
+
+            <div class="flex items-center gap-3 text-right">
+              <div>
+                <div class="text-xs text-stone-400 font-semibold">ADVERSAIRE</div>
+                <div id="score-foe" class="text-2xl font-bold font-cinzel text-red-400">0</div>
+              </div>
+              <span class="w-3 h-3 rounded-full bg-red-500 inline-block shadow-[0_0_8px_#ef4444]"></span>
+            </div>
+          </div>
+
+          <!-- Board Grid -->
+          <div id="board-grid" class="grid grid-cols-[40px_repeat(5,1fr)_40px] gap-1.5 p-2 bg-stone-950/80 rounded-xl border border-stone-800 shadow-2xl min-h-[320px]">
+            <!-- Generated dynamically via JS -->
+          </div>
+
+          <!-- Player Hand Container -->
+          <div class="bg-stone-900/60 p-3 rounded-xl border border-stone-800/80 flex flex-col gap-1.5">
+            <div class="flex justify-between items-center text-xs text-stone-400 px-1">
+              <span>Votre Main (<span id="hand-count">0</span>/5)</span>
+              <span id="deck-remaining-info" class="text-stone-500">Cartes restantes en pioche : 0</span>
+            </div>
+            
+            <div id="hand-cards" class="flex gap-2 overflow-x-auto py-1 min-h-[110px] items-center justify-start sm:justify-center">
+              <!-- Hand cards dynamically inserted here -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Side: Card Inspector / Details -->
+        <div class="bg-stone-900/80 border border-stone-800 rounded-xl p-3 flex flex-col gap-3 min-h-[380px]">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400 border-b border-stone-800 pb-2">Inspecteur de Carte</h3>
+          
+          <div id="card-inspector-content" class="flex-1 flex flex-col items-center justify-center text-center p-2 text-stone-500">
+            <span class="text-3xl mb-2 opacity-40">🃏</span>
+            <p class="text-xs">Survolez ou cliquez sur une carte pour afficher ses caractéristiques et son motif de contrôle.</p>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ================= SECTION: DECK BUILDING ================= -->
+    <section id="tab-deck" class="hidden flex-col gap-4">
+      <div class="flex justify-between items-center bg-stone-900/80 p-3 rounded-xl border border-stone-800">
+        <div>
+          <h2 class="font-cinzel text-lg font-bold text-amber-400">Gestionnaire de Deck</h2>
+          <p class="text-xs text-stone-400">Composez un deck valide d'exactement <strong class="text-amber-300">20 cartes</strong> pour pouvoir lancer un duel.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="text-right">
+            <div class="text-xs text-stone-400">Taille du deck</div>
+            <div id="deck-size-indicator" class="text-lg font-bold text-amber-400">0 / 20</div>
+          </div>
+          <button onclick="autoFillDeck()" class="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded text-xs border border-stone-600">Remplir auto</button>
+          <button onclick="clearDeck()" class="px-3 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 rounded text-xs border border-rose-800/40">Vider</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Collection -->
+        <div class="bg-stone-900/60 p-3 rounded-xl border border-stone-800 flex flex-col gap-2">
+          <h3 class="text-xs font-bold text-stone-300 uppercase tracking-wider">Cartes Possédées (<span id="collection-count">0</span>)</h3>
+          <div id="collection-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[460px] overflow-y-auto p-1">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Current Deck -->
+        <div class="bg-stone-900/60 p-3 rounded-xl border border-stone-800 flex flex-col gap-2">
+          <h3 class="text-xs font-bold text-stone-300 uppercase tracking-wider">Cartes dans le Deck (<span id="current-deck-count">0</span>/20)</h3>
+          <div id="deck-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[460px] overflow-y-auto p-1">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SECTION: GACHA BOUTIQUE ================= -->
+    <section id="tab-gacha" class="hidden flex-col gap-4">
+      <div class="bg-gradient-to-r from-amber-950/40 via-stone-900/80 to-amber-950/40 p-4 rounded-xl border border-amber-600/30 text-center">
+        <h2 class="font-cinzel text-xl font-bold text-amber-400 mb-1">✨ Gold Saucer Booster Shop</h2>
+        <p class="text-xs text-stone-300 max-w-xl mx-auto">Utilisez vos jetons remportés en duel pour tenter votre chance et obtenir des cartes rares, épiques ou légendaires pour renforcer votre deck !</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Pack Basic -->
+        <div class="bg-stone-900/80 border border-stone-700 rounded-xl p-4 flex flex-col justify-between items-center text-center gap-3 hover:border-stone-500 transition">
+          <div class="text-4xl">📦</div>
+          <div>
+            <h3 class="font-cinzel font-bold text-amber-200">Booster Standard</h3>
+            <p class="text-xs text-stone-400 mt-1">Contient 1 carte aléatoire (Commun ou Rare).</p>
+          </div>
+          <div class="text-amber-400 font-bold text-sm">100 🪙 Jetons</div>
+          <button onclick="pullGacha('basic', 100)" class="w-full py-2 bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 font-bold rounded text-xs border border-amber-500/40 transition">Tirer (1 Carte)</button>
+        </div>
+
+        <!-- Pack Premium -->
+        <div class="bg-stone-900/80 border border-amber-600/50 rounded-xl p-4 flex flex-col justify-between items-center text-center gap-3 pulse-gold">
+          <div class="text-4xl">✨</div>
+          <div>
+            <h3 class="font-cinzel font-bold text-amber-300">Booster Gold Saucer</h3>
+            <p class="text-xs text-stone-400 mt-1">Contient 3 cartes avec chances accrues Épique & Légendaire !</p>
+          </div>
+          <div class="text-amber-400 font-bold text-sm">250 🪙 Jetons</div>
+          <button onclick="pullGacha('premium', 250)" class="w-full py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold rounded text-xs transition">Tirer (3 Cartes)</button>
+        </div>
+
+        <!-- Pack High Roller -->
+        <div class="bg-stone-900/80 border border-purple-600/50 rounded-xl p-4 flex flex-col justify-between items-center text-center gap-3 hover:border-purple-400 transition">
+          <div class="text-4xl">👑</div>
+          <div>
+            <h3 class="font-cinzel font-bold text-purple-300">Pack High Roller</h3>
+            <p class="text-xs text-stone-400 mt-1">Contient 5 cartes garantissant au moins 1 carte Épique ou Légendaire !</p>
+          </div>
+          <div class="text-amber-400 font-bold text-sm">500 🪙 Jetons</div>
+          <button onclick="pullGacha('deluxe', 500)" class="w-full py-2 bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 font-bold rounded text-xs border border-purple-500/40 transition">Tirer (5 Cartes)</button>
+        </div>
+      </div>
+
+      <!-- Gacha Reveal Modal / Container -->
+      <div id="gacha-result" class="hidden bg-stone-950/90 border border-amber-500/40 p-4 rounded-xl flex flex-col items-center gap-3">
+        <h3 class="font-cinzel font-bold text-amber-300 text-base">Cartes Obtenues !</h3>
+        <div id="gacha-cards-container" class="flex flex-wrap gap-3 justify-center"></div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-4 right-4 bg-amber-500 text-stone-950 font-bold px-4 py-2 rounded-lg shadow-xl text-xs transition-opacity duration-300 opacity-0 pointer-events-none z-50">
+    Message
+  </div>
+
+<script>
+// ============================================================================
+// BASE CARDS DATABASE
+// ============================================================================
+// Patterns: [dx, dy] relative offsets where positive dx is rightwards
+const CARD_DATABASE = [
+  // --- STARTER CARDS (BASIC) ---
+  { id: 'c1', name: 'Mog', cost: 1, power: 1, rarity: 'common', pat: [[1,0], [-1,0]], desc: 'Ajoute des pions à gauche et à droite.' },
+  { id: 'c2', name: 'Chocobo', cost: 1, power: 2, rarity: 'common', pat: [[1,0]], desc: 'Étend le contrôle vers l’avant.' },
+  { id: 'c3', name: 'Cactuar', cost: 1, power: 1, rarity: 'common', pat: [[1,0], [0,1], [0,-1]], desc: 'Couvre l’avant et les côtés.' },
+  { id: 'c4', name: 'Soldat Shinra', cost: 1, power: 2, rarity: 'common', pat: [[0,1]], desc: 'Contrôle la case du bas.' },
+  { id: 'c5', name: 'Gardien Loup', cost: 1, power: 2, rarity: 'common', pat: [[1,1], [1,-1]], desc: 'Attaque en diagonale avant.' },
+  { id: 'c6', name: 'Mandragore', cost: 2, power: 3, rarity: 'common', pat: [[1,0]], desc: 'Force moyenne portée avant.' },
+  { id: 'c7', name: 'Abeille Tueuse', cost: 1, power: 1, rarity: 'common', pat: [[0,1], [0,-1]], desc: 'Contrôle verticalement.' },
+  { id: 'c8', name: 'Scurrit', cost: 2, power: 2, rarity: 'common', pat: [[1,0], [2,0]], desc: 'Avance loin sur la ligne.' },
+
+  // --- GACHA UNLOCKABLE CARDS ---
+  { id: 'c9', name: 'Tonberry', cost: 2, power: 2, rarity: 'rare', pat: [[1,0], [0,-1], [0,1]], desc: 'Contrôle agressif rapproché.' },
+  { id: 'c10', name: 'Yuffie', cost: 2, power: 3, rarity: 'rare', pat: [[1,1], [1,-1], [-1,1]], desc: 'Polyvalence ninja diagonale.' },
+  { id: 'c11', name: 'Red XIII', cost: 2, power: 4, rarity: 'rare', pat: [[1,0]], desc: 'Haute puissance défensive.' },
+  { id: 'c12', name: 'Cait Sith', cost: 2, power: 3, rarity: 'rare', pat: [[1,0], [2,0]], desc: 'Projection de pions en ligne.' },
+  { id: 'c13', name: 'Tifa', cost: 2, power: 3, rarity: 'epic', pat: [[1,0], [0,1], [0,-1], [1,1]], desc: 'Attaque rapide multi-directionnelle.' },
+  { id: 'c14', name: 'Barret', cost: 2, power: 4, rarity: 'rare', pat: [[0,1], [0,-1], [1,0]], desc: 'Couverture lourde sur les côtés.' },
+  { id: 'c15', name: 'Aerith', cost: 2, power: 2, rarity: 'epic', pat: [[1,0], [2,0], [1,1], [1,-1]], desc: 'Support magique étendu.' },
+  { id: 'c16', name: 'Cloud', cost: 3, power: 5, rarity: 'epic', pat: [[1,0], [0,1], [0,-1]], desc: 'Puissant tranchant frontal et latéral.' },
+  { id: 'c17', name: 'Zack', cost: 3, power: 4, rarity: 'epic', pat: [[1,0], [2,0], [1,1], [1,-1]], desc: 'Assaut héroïque longue portée.' },
+  { id: 'c18', name: 'Sephiroth', cost: 3, power: 7, rarity: 'legendary', pat: [[1,0], [-1,0]], desc: 'Puissance dévastatrice avec pression directe.' },
+  { id: 'c19', name: 'Hécatonchire', cost: 3, power: 6, rarity: 'rare', pat: [[1,0], [0,1]], desc: 'Ancrage physique solide.' },
+  { id: 'c20', name: 'Titan', cost: 3, power: 6, rarity: 'legendary', pat: [[1,0], [1,1], [1,-1]], desc: 'Invasion de zone massive.' },
+  { id: 'c21', name: 'Ifrit', cost: 3, power: 5, rarity: 'legendary', pat: [[1,0], [2,0], [0,1], [0,-1]], desc: 'Flammes d’infernale dompteur.' },
+  { id: 'c22', name: 'Shiva', cost: 2, power: 4, rarity: 'epic', pat: [[1,1], [1,-1], [-1,-1], [-1,1]], desc: 'Glace rayonnante aux 4 coins.' }
+];
+
+// Starter Cards unlocked for player initially
+const STARTER_CARD_IDS = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8'];
+
+// ============================================================================
+// GAME STATE MANAGEMENT
+// ============================================================================
+let userState = {
+  tokens: 500,
+  unlockedCards: [...STARTER_CARD_IDS],
+  deck: []
+};
+
+// Default initial deck (copies of starter cards to form 20 cards)
+function buildDefaultDeck() {
+  const d = [];
+  while(d.length < 20) {
+    for(const id of STARTER_CARD_IDS) {
+      if(d.length < 20) d.push(id);
+    }
+  }
+  return d;
+}
+
+// Global Game Variables
+let Board = [];
+let Hand = [[], []]; // [Player, AI]
+let Deck = [[], []]; // [Player, AI]
+let turn = 0; // 0: Player, 1: AI
+let passes = 0;
+let selectedHandIndex = null;
+let gameOver = false;
+let hoveredTile = null;
+
+// ============================================================================
+// INITIALIZATION & LOCAL STORAGE
+// ============================================================================
+window.onload = () => {
+  loadUserData();
+  updateTokenUI();
+  updateDeckBadge();
+  renderDeckBuilding();
+  startNewGame();
+};
+
+function saveUserData() {
+  try {
+    localStorage.setItem('qb_user_save', JSON.stringify(userState));
+  } catch(e){}
+}
+
+function loadUserData() {
+  try {
+    const data = localStorage.getItem('qb_user_save');
+    if(data) {
+      userState = JSON.parse(data);
+    } else {
+      userState.deck = buildDefaultDeck();
+    }
+  } catch(e) {
+    userState.deck = buildDefaultDeck();
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.remove('opacity-0');
+  setTimeout(() => t.classList.add('opacity-0'), 2500);
+}
+
+function updateTokenUI() {
+  document.getElementById('gold-tokens').textContent = userState.tokens;
+  saveUserData();
+}
+
+function updateDeckBadge() {
+  const count = userState.deck.length;
+  const badge = document.getElementById('deck-count-badge');
+  badge.textContent = count;
+  if(count === 20) {
+    badge.className = 'text-green-400 font-bold';
+  } else {
+    badge.className = 'text-amber-400 font-bold';
+  }
+}
+
+// ============================================================================
+// TAB NAVIGATION
+// ============================================================================
+function switchTab(tab) {
+  ['game', 'deck', 'gacha'].forEach(t => {
+    const sec = document.getElementById(`tab-${t}`);
+    const btn = document.getElementById(`nav-${t}`);
+    if(t === tab) {
+      sec.classList.remove('hidden');
+      sec.classList.add('flex');
+      btn.className = "px-3 py-1 rounded-md text-xs font-semibold transition-all bg-amber-500/20 text-amber-300 border border-amber-500/40";
+    } else {
+      sec.classList.add('hidden');
+      sec.classList.remove('flex');
+      btn.className = "px-3 py-1 rounded-md text-xs font-semibold transition-all hover:bg-white/5 text-stone-400";
+    }
+  });
+
+  if(tab === 'deck') renderDeckBuilding();
+}
+
+// ============================================================================
+// QUEEN'S BLOOD GAME LOGIC
+// ============================================================================
+function startNewGame() {
+  if(userState.deck.length !== 20) {
+    showToast("Votre deck doit contenir exactement 20 cartes pour jouer !");
+    switchTab('deck');
+    return;
+  }
+
+  // Initialize empty 3x5 board
+  // Board[row][col] = { owner: null|0|1, pins: 0..3, card: null|cardObj }
+  Board = Array.from({length: 3}, () => Array.from({length: 5}, () => ({ owner: null, pins: 0, card: null })));
+  
+  // Starting pawns (Column 0 for player, Column 4 for AI)
+  for(let r = 0; r < 3; r++) {
+    Board[r][0] = { owner: 0, pins: 1, card: null };
+    Board[r][4] = { owner: 1, pins: 1, card: null };
+  }
+
+  // Prepare Player Deck from user's custom deck
+  const playerCardObjs = userState.deck.map(id => ({...CARD_DATABASE.find(c => c.id === id)}));
+  Deck[0] = shuffle([...playerCardObjs]);
+
+  // Prepare AI Deck based on difficulty
+  const aiCards = generateAIDeck();
+  Deck[1] = shuffle([...aiCards]);
+
+  // Hands initialization (Draw 5 cards each)
+  Hand[0] = Deck[0].splice(0, 5);
+  Hand[1] = Deck[1].splice(0, 5);
+
+  turn = 0;
+  passes = 0;
+  selectedHandIndex = null;
+  gameOver = false;
+
+  setGameMessage("Partie commencée ! À vous de jouer.");
+  document.getElementById('btn-pass').disabled = false;
+  renderBoard();
+  renderHand();
+  renderInspector(null);
+}
+
+function generateAIDeck() {
+  const diff = document.getElementById('diff-select').value;
+  let pool = CARD_DATABASE.filter(c => c.rarity === 'common');
+  
+  if(diff === 'medium') {
+    pool = CARD_DATABASE.filter(c => c.rarity === 'common' || c.rarity === 'rare');
+  } else if(diff === 'hard') {
+    pool = CARD_DATABASE; // All cards available
+  }
+
+  const aiDeck = [];
+  while(aiDeck.length < 20) {
+    const randomCard = pool[Math.floor(Math.random() * pool.length)];
+    aiDeck.push({...randomCard});
+  }
+  return aiDeck;
+}
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function drawCard(p) {
+  if(Deck[p].length > 0 && Hand[p].length < 5) {
+    Hand[p].push(Deck[p].shift());
+  }
+}
+
+// Calculate target cells for pattern application
+function getAffectedCells(card, row, col, owner) {
+  const affected = [];
+  card.pat.forEach(([dx, dy]) => {
+    // For player (owner 0), dx moves right (+dx). For AI (owner 1), dx moves left (-dx).
+    const targetCol = col + (owner === 0 ? dx : -dx);
+    const targetRow = row + dy;
+    if(targetRow >= 0 && targetRow < 3 && targetCol >= 0 && targetCol < 5) {
+      affected.push([targetRow, targetCol]);
+    }
+  });
+  return affected;
+}
+
+function isValidMove(card, row, col, owner) {
+  const cell = Board[row][col];
+  if(cell.card !== null) return false;
+  if(cell.owner !== owner) return false;
+  return cell.pins >= card.cost;
+}
+
+function applyCardToBoard(card, row, col, owner) {
+  const cell = Board[row][col];
+  cell.card = card;
+
+  // Apply pattern effects
+  const targets = getAffectedCells(card, row, col, owner);
+  targets.forEach(([r, c]) => {
+    const t = Board[r][c];
+    if(t.card !== null) return; // Cannot alter occupied tiles
+
+    if(t.owner === null) {
+      t.owner = owner;
+      t.pins = 1;
+    } else if(t.owner === owner) {
+      t.pins = Math.min(3, t.pins + 1);
+    } else {
+      // Enemy tile capture condition: If we affect an opponent's tile, convert or level up control
+      t.owner = owner;
+      t.pins = Math.min(3, t.pins + 1);
+    }
+  });
+}
+
+function calculateScores() {
+  const rowScores = [ [0,0], [0,0], [0,0] ]; // [Player, AI] per row
+  
+  for(let r = 0; r < 3; r++) {
+    for(let c = 0; c < 5; c++) {
+      const tile = Board[r][c];
+      if(tile.card) {
+        rowScores[r][tile.card.owner ?? tile.owner] += tile.card.power;
+      }
+    }
+  }
+
+  let totalMe = 0;
+  let totalFoe = 0;
+
+  rowScores.forEach(([me, foe]) => {
+    if(me > foe) totalMe += me;
+    else if(foe > me) totalFoe += foe;
+  });
+
+  return { rowScores, totalMe, totalFoe };
+}
+
+// Get valid moves for a player
+function getAvailableMoves(owner) {
+  const valid = [];
+  Hand[owner].forEach((card, handIdx) => {
+    for(let r = 0; r < 3; r++) {
+      for(let c = 0; c < 5; c++) {
+        if(isValidMove(card, r, c, owner)) {
+          valid.push({ handIdx, card, r, c });
+        }
+      }
+    }
+  });
+  return valid;
+}
+
+function setGameMessage(msg) {
+  document.getElementById('game-status-msg').textContent = msg;
+}
+
+// ============================================================================
+// BOARD & HAND RENDERING WITH FEEDBACK
+// ============================================================================
+function renderBoard() {
+  const grid = document.getElementById('board-grid');
+  grid.innerHTML = '';
+
+  const { rowScores, totalMe, totalFoe } = calculateScores();
+  
+  // Calculate hover effect targets if a card is selected in hand
+  let previewTargets = new Set();
+  if(selectedHandIndex !== null && hoveredTile && turn === 0) {
+    const selectedCard = Hand[0][selectedHandIndex];
+    const [hr, hc] = hoveredTile;
+    if(isValidMove(selectedCard, hr, hc, 0)) {
+      const targets = getAffectedCells(selectedCard, hr, hc, 0);
+      targets.forEach(([tr, tc]) => previewTargets.add(`${tr},${tc}`));
+    }
+  }
+
+  // Render 3 Rows
+  for(let r = 0; r < 3; r++) {
+    // Left Row Score (Player)
+    const pScore = document.createElement('div');
+    const playerWinsRow = rowScores[r][0] > rowScores[r][1];
+    pScore.className = `flex items-center justify-center font-cinzel font-bold text-lg rounded-lg border bg-stone-900 ${
+      playerWinsRow ? 'text-blue-400 border-blue-500/80 shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'text-stone-500 border-stone-800'
+    }`;
+    pScore.textContent = rowScores[r][0];
+    grid.appendChild(pScore);
+
+    // 5 Tiles per Row
+    for(let c = 0; c < 5; c++) {
+      const tile = Board[r][c];
+      const tileDiv = document.createElement('div');
+      
+      let baseStyle = "aspect-[3/4] rounded-lg border flex flex-col items-center justify-center relative p-1 transition-all duration-200 cursor-pointer overflow-hidden ";
+      
+      // Ownership Background
+      if(tile.owner === 0) {
+        baseStyle += "bg-blue-950/40 border-blue-900/60 ";
+      } else if(tile.owner === 1) {
+        baseStyle += "bg-red-950/40 border-red-900/60 ";
+      } else {
+        baseStyle += "bg-stone-900/50 border-stone-800 ";
+      }
+
+      // Valid placement highlight
+      const isSelectedCardValidHere = selectedHandIndex !== null && turn === 0 && isValidMove(Hand[0][selectedHandIndex], r, c, 0);
+      if(isSelectedCardValidHere) {
+        baseStyle += "border-amber-400/80 shadow-[0_0_8px_rgba(243,199,102,0.4)] hover:bg-amber-950/30 ";
+      }
+
+      // Preview pattern target highlight
+      if(previewTargets.has(`${r},${c}`)) {
+        baseStyle += "tile-preview-add ";
+      }
+
+      tileDiv.className = baseStyle;
+
+      // Tile Content
+      if(tile.card) {
+        tileDiv.classList.add('animate-place');
+        tileDiv.innerHTML = `
+          <div class="text-[9px] font-semibold tracking-tighter truncate w-full text-center ${tile.owner === 0 ? 'text-blue-300' : 'text-red-300'}">${tile.card.name}</div>
+          <div class="text-xl font-bold font-cinzel ${tile.owner === 0 ? 'text-blue-400' : 'text-red-400'}">${tile.card.power}</div>
+          <div class="absolute bottom-1 text-[9px] text-amber-400/80">★${tile.card.cost}</div>
+        `;
+      } else if(tile.owner !== null) {
+        // Pins Display
+        let pinsStr = '•'.repeat(tile.pins);
+        tileDiv.innerHTML = `
+          <div class="text-xs font-bold ${tile.owner === 0 ? 'text-amber-400' : 'text-red-400'} tracking-widest">${pinsStr}</div>
+        `;
+      }
+
+      // Tile Interaction Events
+      tileDiv.onclick = () => handleTileClick(r, c);
+      tileDiv.onmouseenter = () => {
+        hoveredTile = [r, c];
+        if(tile.card) renderInspector(tile.card);
+        renderBoard();
+      };
+      tileDiv.onmouseleave = () => {
+        hoveredTile = null;
+      };
+
+      grid.appendChild(tileDiv);
+    }
+
+    // Right Row Score (AI)
+    const fScore = document.createElement('div');
+    const aiWinsRow = rowScores[r][1] > rowScores[r][0];
+    fScore.className = `flex items-center justify-center font-cinzel font-bold text-lg rounded-lg border bg-stone-900 ${
+      aiWinsRow ? 'text-red-400 border-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'text-stone-500 border-stone-800'
+    }`;
+    fScore.textContent = rowScores[r][1];
+    grid.appendChild(fScore);
+  }
+
+  // Update Global Totals
+  document.getElementById('score-me').textContent = totalMe;
+  document.getElementById('score-foe').textContent = totalFoe;
+  document.getElementById('hand-count').textContent = Hand[0].length;
+  document.getElementById('deck-remaining-info').textContent = `Cartes restantes en pioche : ${Deck[0].length}`;
+}
+
+function renderHand() {
+  const container = document.getElementById('hand-cards');
+  container.innerHTML = '';
+
+  Hand[0].forEach((card, idx) => {
+    const cardDiv = document.createElement('div');
+    const isSel = idx === selectedHandIndex;
+    
+    cardDiv.className = `w-20 sm:w-24 p-1.5 rounded-lg border bg-stone-900/90 flex flex-col items-center justify-between cursor-pointer transition-all duration-150 flex-shrink-0 ${
+      isSel ? 'border-amber-400 -translate-y-2 shadow-[0_0_12px_rgba(243,199,102,0.5)]' : 'border-stone-700 hover:border-stone-500 hover:-translate-y-1'
+    } rarity-${card.rarity}`;
+
+    // Mini Grid Preview for Card Pattern
+    let miniGridHtml = '<div class="grid grid-cols-5 gap-0.5 w-10 my-1">';
+    for(let y = -2; y <= 2; y++) {
+      for(let x = -2; x <= 2; x++) {
+        if(x === 0 && y === 0) {
+          miniGridHtml += `<span class="aspect-square bg-amber-400 rounded-xs"></span>`;
+        } else if(card.pat.some(([px, py]) => px === x && py === y)) {
+          miniGridHtml += `<span class="aspect-square bg-blue-400 rounded-xs"></span>`;
+        } else {
+          miniGridHtml += `<span class="aspect-square bg-stone-800/80 rounded-xs"></span>`;
+        }
+      }
+    }
+    miniGridHtml += '</div>';
+
+    cardDiv.innerHTML = `
+      <div class="text-[10px] font-bold text-center truncate w-full text-stone-200">${card.name}</div>
+      <div class="flex justify-between items-center w-full px-1 text-xs">
+        <span class="text-amber-400 font-bold">●${card.cost}</span>
+        <span class="text-blue-400 font-bold text-sm">${card.power}</span>
+      </div>
+      ${miniGridHtml}
+    `;
+
+    cardDiv.onclick = () => {
+      if(gameOver || turn !== 0) return;
+      selectedHandIndex = (selectedHandIndex === idx) ? null : idx;
+      renderInspector(card);
+      renderBoard();
+      renderHand();
+    };
+
+    cardDiv.onmouseenter = () => renderInspector(card);
+
+    container.appendChild(cardDiv);
+  });
+}
+
+// Inspector Card Details View
+function renderInspector(card) {
+  const container = document.getElementById('card-inspector-content');
+  if(!card) {
+    container.innerHTML = `
+      <span class="text-3xl mb-2 opacity-40">🃏</span>
+      <p class="text-xs">Survolez ou cliquez sur une carte pour afficher ses caractéristiques et son motif de contrôle.</p>
+    `;
+    return;
+  }
+
+  // Generate larger interactive pattern grid
+  let patternGrid = '<div class="grid grid-cols-5 gap-1 w-32 my-3 p-2 bg-stone-950 rounded-lg border border-stone-800">';
+  for(let y = -2; y <= 2; y++) {
+    for(let x = -2; x <= 2; x++) {
+      if(x === 0 && y === 0) {
+        patternGrid += `<span class="aspect-square bg-amber-400 rounded flex items-center justify-center text-[10px] font-bold text-black">🃏</span>`;
+      } else if(card.pat.some(([px, py]) => px === x && py === y)) {
+        patternGrid += `<span class="aspect-square bg-blue-500 rounded border border-blue-300"></span>`;
+      } else {
+        patternGrid += `<span class="aspect-square bg-stone-900 rounded border border-stone-800"></span>`;
+      }
+    }
+  }
+  patternGrid += '</div>';
+
+  container.innerHTML = `
+    <div class="w-full flex flex-col items-center">
+      <span class="text-xs px-2 py-0.5 rounded uppercase font-bold tracking-wider border mb-1 rarity-${card.rarity}">${card.rarity}</span>
+      <h4 class="font-cinzel font-bold text-lg text-amber-300">${card.name}</h4>
+      
+      <div class="flex justify-center gap-4 my-2 text-sm">
+        <span class="bg-amber-950/60 border border-amber-800/60 px-3 py-1 rounded text-amber-300 font-bold">Coût : ${card.cost} ●</span>
+        <span class="bg-blue-950/60 border border-blue-800/60 px-3 py-1 rounded text-blue-300 font-bold">Puissance : ${card.power}</span>
+      </div>
+
+      <div class="text-xs text-stone-300 my-1 italic px-2">${card.desc}</div>
+
+      ${patternGrid}
+      <span class="text-[10px] text-stone-500">Motif d'action (Jaune = Carte, Bleu = Zone d'effet)</span>
+    </div>
+  `;
+}
+
+// ============================================================================
+// GAMEPLAY INTERACTIONS & AI LOGIC
+// ============================================================================
+function handleTileClick(r, c) {
+  if(gameOver || turn !== 0 || selectedHandIndex === null) return;
+
+  const card = Hand[0][selectedHandIndex];
+  if(!isValidMove(card, r, c, 0)) {
+    showToast("Placement impossible ! Nombre de pions insuffisant.");
+    return;
+  }
+
+  // Play Player Card
+  card.owner = 0;
+  Hand[0].splice(selectedHandIndex, 1);
+  applyCardToBoard(card, r, c, 0);
+  
+  selectedHandIndex = null;
+  passes = 0;
+
+  renderBoard();
+  renderHand();
+
+  // Check AI Turn
+  turn = 1;
+  setGameMessage("L’adversaire réfléchit...");
+  setTimeout(executeAITurn, 800);
+}
+
+function handlePassTurn() {
+  if(gameOver || turn !== 0) return;
+
+  passes++;
+  selectedHandIndex = null;
+  showToast("Vous passez votre tour.");
+
+  if(passes >= 2) {
+    endGame();
+    return;
+  }
+
+  turn = 1;
+  setGameMessage("Vous avez passé. Tour de l'adversaire...");
+  setTimeout(executeAITurn, 800);
+}
+
+function executeAITurn() {
+  drawCard(1);
+  const validMoves = getAvailableMoves(1);
+
+  if(validMoves.length === 0) {
+    passes++;
+    setGameMessage("L’adversaire n'a aucun coup valide et passe.");
+    if(passes >= 2) {
+      endGame();
+      return;
+    }
+    returnToPlayer();
+    return;
+  }
+
+  const difficulty = document.getElementById('diff-select').value;
+  let bestMove = null;
+
+  if(difficulty === 'easy') {
+    // Pick random move
+    bestMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+  } else {
+    // Medium / Hard AI Scoring Evaluation
+    let highestScore = -999;
+
+    validMoves.forEach(m => {
+      // Create simulated board state
+      const simBoard = JSON.parse(JSON.stringify(Board));
+      const simCard = {...m.card, owner: 1};
+      
+      // Apply simulation
+      simBoard[m.r][m.c].card = simCard;
+      const targets = getAffectedCells(simCard, m.r, m.c, 1);
+      targets.forEach(([tr, tc]) => {
+        if(!simBoard[tr][tc].card) {
+          simBoard[tr][tc].owner = 1;
+        }
+      });
+
+      // Calculate score advantage
+      let scoreAdvantage = 0;
+      simBoard.forEach(row => {
+        row.forEach(t => {
+          if(t.card) {
+            if(t.card.owner === 1) scoreAdvantage += t.card.power;
+            else scoreAdvantage -= t.card.power;
+          }
+        });
+      });
+
+      const moveValue = scoreAdvantage + (m.card.pat.length * 0.4) - (m.card.cost * 0.3) + (difficulty === 'medium' ? Math.random() * 2 : 0);
+
+      if(moveValue > highestScore) {
+        highestScore = moveValue;
+        bestMove = m;
+      }
+    });
+  }
+
+  // Play AI Card
+  const cardToPlay = Hand[1].splice(bestMove.handIdx, 1)[0];
+  cardToPlay.owner = 1;
+  applyCardToBoard(cardToPlay, bestMove.r, bestMove.c, 1);
+  passes = 0;
+
+  setGameMessage(`L'adversaire a joué ${cardToPlay.name}.`);
+  returnToPlayer();
+}
+
+function returnToPlayer() {
+  turn = 0;
+  drawCard(0);
+  renderBoard();
+  renderHand();
+
+  const playerMoves = getAvailableMoves(0);
+  if(playerMoves.length === 0 && !gameOver) {
+    setGameMessage("Aucun coup possible pour vous. Vous devez passer.");
+  }
+}
+
+function endGame() {
+  gameOver = true;
+  document.getElementById('btn-pass').disabled = true;
+
+  const { totalMe, totalFoe } = calculateScores();
+  const diff = document.getElementById('diff-select').value;
+
+  let rewardMult = diff === 'easy' ? 100 : (diff === 'medium' ? 250 : 500);
+
+  if(totalMe > totalFoe) {
+    setGameMessage(`🏆 VICTOIRE ÉPIQUE ! (${totalMe} - ${totalFoe})`);
+    userState.tokens += rewardMult;
+    updateTokenUI();
+    showToast(`Victoire ! +${rewardMult} Jetons Gold Saucer !`);
+  } else if(totalFoe > totalMe) {
+    setGameMessage(`💀 DÉFAITE... (${totalMe} - ${totalFoe})`);
+    showToast("Défaite... Entraînez-vous et réessayez !");
+  } else {
+    setGameMessage(`⚖️ ÉGALITÉ PARFAITE ! (${totalMe} - ${totalFoe})`);
+    const drawReward = Math.floor(rewardMult / 2);
+    userState.tokens += drawReward;
+    updateTokenUI();
+    showToast(`Égalité ! +${drawReward} Jetons Gold Saucer.`);
+  }
+
+  renderBoard();
+}
+
+// ============================================================================
+// DECK BUILDING SYSTEM
+// ============================================================================
+function renderDeckBuilding() {
+  const collectionGrid = document.getElementById('collection-grid');
+  const deckGrid = document.getElementById('deck-grid');
+  
+  collectionGrid.innerHTML = '';
+  deckGrid.innerHTML = '';
+
+  document.getElementById('collection-count').textContent = userState.unlockedCards.length;
+  document.getElementById('current-deck-count').textContent = userState.deck.length;
+  document.getElementById('deck-size-indicator').textContent = `${userState.deck.length} / 20`;
+  updateDeckBadge();
+
+  // Populate Unlocked Cards Collection
+  userState.unlockedCards.forEach(cardId => {
+    const card = CARD_DATABASE.find(c => c.id === cardId);
+    if(!card) return;
+
+    const countInDeck = userState.deck.filter(id => id === cardId).length;
+
+    const cardEl = document.createElement('div');
+    cardEl.className = `p-2 bg-stone-900 rounded-lg border border-stone-800 flex flex-col justify-between items-center text-center rarity-${card.rarity}`;
+    cardEl.innerHTML = `
+      <div class="text-xs font-bold text-amber-200">${card.name}</div>
+      <div class="text-[10px] text-stone-400">Coût: ${card.cost} | Pw: ${card.power}</div>
+      <div class="text-[10px] text-amber-400 font-semibold my-1">Dans le deck : ${countInDeck}</div>
+      <button onclick="addToDeck('${card.id}')" class="w-full py-1 bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 rounded text-[10px] font-bold border border-amber-500/30">+ Ajouter</button>
+    `;
+    collectionGrid.appendChild(cardEl);
+  });
+
+  // Populate Current Deck
+  userState.deck.forEach((cardId, index) => {
+    const card = CARD_DATABASE.find(c => c.id === cardId);
+    if(!card) return;
+
+    const cardEl = document.createElement('div');
+    cardEl.className = `p-2 bg-stone-900 rounded-lg border border-stone-700 flex flex-col justify-between items-center text-center rarity-${card.rarity}`;
+    cardEl.innerHTML = `
+      <div class="text-xs font-bold text-amber-200">${card.name}</div>
+      <div class="text-[10px] text-stone-400">Coût: ${card.cost} | Pw: ${card.power}</div>
+      <button onclick="removeFromDeck(${index})" class="w-full mt-1 py-1 bg-rose-900/30 hover:bg-rose-900/50 text-rose-300 rounded text-[10px] font-bold border border-rose-700/30">- Retirer</button>
+    `;
+    deckGrid.appendChild(cardEl);
+  });
+}
+
+function addToDeck(cardId) {
+  if(userState.deck.length >= 20) {
+    showToast("Le deck est plein (20 cartes max) !");
+    return;
+  }
+  userState.deck.push(cardId);
+  renderDeckBuilding();
+}
+
+function removeFromDeck(index) {
+  userState.deck.splice(index, 1);
+  renderDeckBuilding();
+}
+
+function clearDeck() {
+  userState.deck = [];
+  renderDeckBuilding();
+}
+
+function autoFillDeck() {
+  while(userState.deck.length < 20 && userState.unlockedCards.length > 0) {
+    const randomCardId = userState.unlockedCards[Math.floor(Math.random() * userState.unlockedCards.length)];
+    userState.deck.push(randomCardId);
+  }
+  renderDeckBuilding();
+}
+
+// ============================================================================
+// GACHA STORE SYSTEM
+// ============================================================================
+function pullGacha(packType, cost) {
+  if(userState.tokens < cost) {
+    showToast("Jetons du Gold Saucer insuffisants !");
+    return;
+  }
+
+  userState.tokens -= cost;
+  updateTokenUI();
+
+  let count = packType === 'basic' ? 1 : (packType === 'premium' ? 3 : 5);
+  const pulledCards = [];
+
+  for(let i = 0; i < count; i++) {
+    let rand = Math.random();
+    let pool = CARD_DATABASE.filter(c => c.rarity === 'common');
+
+    if(packType === 'deluxe' && i === 0) {
+      // Guarantee Epic or Legendary on Deluxe pack
+      pool = CARD_DATABASE.filter(c => c.rarity === 'epic' || c.rarity === 'legendary');
+    } else {
+      if(rand > 0.90) pool = CARD_DATABASE.filter(c => c.rarity === 'legendary');
+      else if(rand > 0.65) pool = CARD_DATABASE.filter(c => c.rarity === 'epic');
+      else if(rand > 0.35) pool = CARD_DATABASE.filter(c => c.rarity === 'rare');
+    }
+
+    if(pool.length === 0) pool = CARD_DATABASE;
+    const drawn = pool[Math.floor(Math.random() * pool.length)];
+    pulledCards.push(drawn);
+
+    // Unlock card in collection if not already present
+    if(!userState.unlockedCards.includes(drawn.id)) {
+      userState.unlockedCards.push(drawn.id);
+    }
+  }
+
+  saveUserData();
+  displayGachaResults(pulledCards);
+}
+
+function displayGachaResults(cards) {
+  const container = document.getElementById('gacha-cards-container');
+  const resultBox = document.getElementById('gacha-result');
+  
+  container.innerHTML = '';
+  resultBox.classList.remove('hidden');
+
+  cards.forEach(card => {
+    const cardEl = document.createElement('div');
+    cardEl.className = `w-28 p-2 bg-stone-900 rounded-xl border flex flex-col items-center justify-between text-center animate-place rarity-${card.rarity}`;
+    cardEl.innerHTML = `
+      <span class="text-[9px] uppercase font-bold text-amber-400">${card.rarity}</span>
+      <div class="text-xs font-bold text-stone-200 my-1">${card.name}</div>
+      <div class="flex justify-between w-full px-1 text-[11px] font-bold">
+        <span class="text-amber-400">● ${card.cost}</span>
+        <span class="text-blue-400">Pw: ${card.power}</span>
+      </div>
+      <div class="text-[9px] text-stone-400 mt-1 italic">${card.desc}</div>
+    `;
+    container.appendChild(cardEl);
+  });
+
+  showToast(`Vous avez obtenu ${cards.length} carte(s) !`);
+}
+</script>
+</body>
+</html>
